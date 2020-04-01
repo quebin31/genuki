@@ -1,0 +1,45 @@
+# Top level keys are considered kernels
+linux:
+  # Kernels can have global options for each of their flavours
+  # These params will be overriden with their flavor counterpart
+  # Useful to avoid repetitions, if not specified here their flavor
+  # counterparts should specify them (unless they are optional)
+  cmdline: /path/to/cmdline # in kernel: optional, in flavor: optional
+  linux: /boot/vmlinuz-linux # in kernel: optional, in flavor: required?
+  splash-image: /path/to/splash # in kernel: optional, in flavor: optional
+  efistub: /path/to/efistub # in kernel: optional, in flavor: required?
+
+  # Flavors may have different options, different from global kernel options
+  # Each kernel-flavor pair is referred as "kernel.flavor"
+  #   - Match every kernel.flavor that starts with 'linux'
+  #       genuki from-config "^linux"
+  #   - Match every kernel.flavor that contains 'linux' in it
+  #       genuki from-config "linux"
+  #   - Match every kernel.flavor which kernel is 'linux'
+  #       genuki from-config "linux\."
+  #   - Match every kernel.flavor which flavor is 'fallback'
+  #       genuki from-config ".*\.fallback"
+  #
+  # For more info about genuki regex syntax see:
+  # https://docs.rs/regex/1/regex/index.html#syntax
+
+  flavors:
+    # Each key is a custom flavor
+
+    default: # Referred as linux.default
+      os-release: /etc/os-release # optional, fallback to '/etc/os-release'
+      cmdline: /path/to/cmdline # optional, can be empty
+      initrd: # required, can be a list or a single value
+        - /boot/intel-ucode.img
+        - /boot/initramfs-linux.img
+      output: /boot/EFI/Arch/archlinux.efi # required
+
+    fallback: # Referred as linux.fallback
+      os-release: # optional, example of inline contents
+        inline: |
+          PRETTY_NAME="Arch Linux (fallback)"
+      cmdline: # optional, example of inline contents
+        inline: |
+          some kernel params here
+      initrd: /boot/initramfs-linux-fallback.img # required, example of single value
+      output: /boot/EFI/Arch/archlinux-fallback.efi # required
