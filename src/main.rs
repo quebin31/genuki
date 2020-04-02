@@ -22,7 +22,7 @@ mod logger;
 mod temp;
 
 use anyhow::Error;
-use clap::{App as ClapApp, Arg, SubCommand};
+use clap::{App as ClapApp, Arg};
 
 use crate::app::App;
 use crate::logger::init_logger;
@@ -54,85 +54,29 @@ fn main() {
                 .short("v")
                 .long("verbose")
                 .multiple(true)
-                .global(true)
                 .help("Set verbosity level (multiple)"),
         )
-        .subcommand(
-            SubCommand::with_name("from-config")
-                .about("Generate UKIs from entries in config file")
-                .arg(
-                    Arg::with_name("config")
-                        .short("c")
-                        .long("config")
-                        .value_name("FILE")
-                        .default_value("/etc/genuki/config.toml")
-                        .help("Set custom config file"),
-                )
-                .arg(
-                    Arg::with_name("all")
-                        .short("a")
-                        .long("all")
-                        .help("Generate UKIs for all the entries"),
-                )
-                .arg(
-                    Arg::with_name("entries")
-                        .value_name("REGEX ...")
-                        .min_values(1)
-                        .index(1)
-                        .required_unless("all")
-                        .help("Generate UKIs for the specified regexes"),
-                ),
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .default_value("/etc/genuki/config.yaml")
+                .help("Set custom config file"),
         )
-        .subcommand(
-            SubCommand::with_name("from-args")
-                .about("Generate an Unified Kernel Image with the provided arguments")
-                .arg(
-                    Arg::with_name("osrel")
-                        .long("os-release")
-                        .value_name("FILE")
-                        .help("Set os-release file"),
-                )
-                .arg(
-                    Arg::with_name("cmdline")
-                        .long("cmdline")
-                        .value_name("FILE")
-                        .help("Set cmdline file with params, or params directly"),
-                )
-                .arg(
-                    Arg::with_name("splash")
-                        .long("splash")
-                        .value_name("BMP_FILE")
-                        .help("Set splash image (bmp)"),
-                )
-                .arg(
-                    Arg::with_name("linux")
-                        .long("linux")
-                        .value_name("LINUX")
-                        .required(true)
-                        .help("Set linux image (vmlinuz)"),
-                )
-                .arg(
-                    Arg::with_name("initrd")
-                        .long("initrd")
-                        .value_name("INITRD,...")
-                        .value_delimiter(",")
-                        .required(true)
-                        .help("Set initramfs image(s), separated with comma"),
-                )
-                .arg(
-                    Arg::with_name("efistub")
-                        .long("efistub")
-                        .value_name("STUB")
-                        .help("Set base efi stub"),
-                )
-                .arg(
-                    Arg::with_name("output")
-                        .short("o")
-                        .long("output")
-                        .value_name("OUT_FILE")
-                        .required(true)
-                        .help("Output file name"),
-                ),
+        .arg(
+            Arg::with_name("all")
+                .short("a")
+                .long("all")
+                .help("Generate UKIs for all the entries"),
+        )
+        .arg(
+            Arg::with_name("entries")
+                .value_name("REGEX")
+                .min_values(1)
+                .index(1)
+                .required_unless("all")
+                .help("Generate UKIs for the specified regexes"),
         );
 
     if let Err(e) = run(app) {
