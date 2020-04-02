@@ -49,7 +49,7 @@ pub struct Flavor {
     #[serde(rename = "splash-image")]
     splash_image: Option<PathBuf>,
     linux: Option<PathBuf>,
-    initrd: OneOrMany<PathBuf>,
+    initrd: Option<OneOrMany<PathBuf>>,
     efistub: Option<PathBuf>,
     output: PathBuf,
 }
@@ -131,8 +131,35 @@ fn check_splash(
     }
 }
 
+fn populate_initramfs(kernel: &str, flavor: &str) -> Result<OneOrMany<PathBuf>, AppError> {
+    let amd_ucode = Path::new("/boot/amd-ucode.img");
+    let intel_ucode = Path::new("/boot/intel-ucode.img");
+
+    let mut initrd = Vec::new();
+    match (amd_ucode.exists(), intel_ucode.exists()) {
+        (true, true) => return Err(AppError::MultipleMicrocode),
+        (true, false) => initrd.push(amd_ucode.to_path_buf()),
+        (false, true) => initrd.push(intel_ucode.to_path_buf()),
+        _ => {}
+    }
+
+    let main_path = if flavor == "fallback" {
+        format!("/boot/initramfs-{}-{}.img", kernel, flavor)
+    } else {
+        format!("/boot/initramfs-{}.img", kernel)
+    };
+
+    if initrd.is_empty() {
+        Ok(OneOrMany::One(main_path.into()))
+    } else {
+        log::info!("Found microcode image");
+        initrd.push(main_path.into());
+        Ok(OneOrMany::Many(initrd))
+    }
+}
+
 impl Config {
-    pub fn from_config_matches(matches: &ArgMatches) -> Result<Self, Error> {
+    pub fn from_matches(matches: &ArgMatches) -> Result<Self, Error> {
         let config_path = matches.value_of("config").unwrap();
         let contents = std::fs::read_to_string(config_path)?;
         let mut config: Self = yaml::from_str(&contents)?;
@@ -144,69 +171,15 @@ impl Config {
         Ok(config)
     }
 
-    pub fn from_args_matches(matches: &ArgMatches) -> Result<Self, Error> {
-        let os_release = matches
-            .value_of("osrel")
-            .map(|p| InlineOrPath::Path(p.into()));
-
-        let cmdline = matches
-            .value_of("cmdline")
-            .map(|p| InlineOrPath::Path(p.into()));
-
-        let splash_image = matches.value_of("splash").map(Into::into);
-
-        let linux = matches.value_of("linux").unwrap().into();
-
-        let initrd: Vec<PathBuf> = matches
-            .values_of("initrd")
-            .unwrap()
-            .map(Into::into)
-            .collect();
-
-        let initrd = if initrd.len() == 1 {
-            OneOrMany::One(initrd[0].clone())
-        } else {
-            OneOrMany::Many(initrd)
-        };
-
-        let efistub = matches.value_of("efistub").map(Into::into);
-
-        let output = matches.value_of("output").unwrap().into();
-
-        let flavor = Flavor {
-            os_release,
-            cmdline,
-            splash_image,
-            linux: Some(linux),
-            initrd,
-            efistub,
-            output,
-        };
-
-        let mut flavors = HashMap::with_capacity(1);
-        flavors.insert("unknown".into(), flavor);
-        let kernel = Kernel {
-            cmdline: None,
-            linux: None,
-            splash_image: None,
-            efistub: None,
-            flavors,
-        };
-
-        let mut kernels = HashMap::with_capacity(1);
-        kernels.insert("unknown".into(), kernel);
-        Ok(Self {
-            location: std::env::current_dir()?,
-            kernels,
-        })
-    }
-
     pub fn os_release_path(&self, kernel: &str, flavor: &str) -> Result<PathBuf, AppError> {
-        let os_release = &self.kernels[kernel].flavors[flavor].os_release;
+        let os_release = self.kernels[kernel].flavors[flavor]
+            .os_release
+            .clone()
+            .unwrap_or_else(|| InlineOrPath::Path("/etc/os-release".into()));
 
         match os_release {
-            Some(InlineOrPath::Path(path)) => check_file(&self.location, path),
-            Some(InlineOrPath::Inline { inline: contents }) => {
+            InlineOrPath::Path(path) => check_file(&self.location, path),
+            InlineOrPath::Inline { inline: contents } => {
                 let (path, mut temp) =
                     temp::temp_file(&format!("{}-{}-os_release", kernel, flavor))?;
 
@@ -217,8 +190,6 @@ impl Config {
 
                 Ok(path)
             }
-
-            _ => check_file(&self.location, "/etc/os-release"),
         }
     }
 
@@ -272,12 +243,15 @@ impl Config {
 
         match linux {
             Some(path) => check_file(&self.location, path),
-            None => Err(AppError::NotProvided("linux")),
+            None => check_file(&self.location, format!("/boot/vmlinuz-{}", kernel)),
         }
     }
 
     pub fn initrd_path(&self, kernel: &str, flavor: &str) -> Result<PathBuf, AppError> {
-        let initrd = &self.kernels[kernel].flavors[flavor].initrd;
+        let initrd = self.kernels[kernel].flavors[flavor]
+            .initrd
+            .clone()
+            .unwrap_or(populate_initramfs(kernel, flavor)?);
 
         match initrd {
             OneOrMany::One(path) => check_file(&self.location, path),
@@ -285,7 +259,7 @@ impl Config {
                 let (path, mut temp) =
                     temp::temp_file(&format!("{}-{}-initrd.img", kernel, flavor))?;
 
-                for initrd in paths {
+                for initrd in &paths {
                     let contents = std::fs::read(initrd).map_err(|e| AppError::IoError {
                         path: initrd.clone(),
                         source: e,
