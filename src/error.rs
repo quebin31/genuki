@@ -30,6 +30,6 @@ pub enum AppError {
         source: std::io::Error,
     },
 
-    #[error("Argument {0} was not provided!")]
-    NotProvided(&'static str),
+    #[error("Found multiple microcode images (intel-ucode, amd-ucode)")]
+    MultipleMicrocode,
 }
