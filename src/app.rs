@@ -30,15 +30,7 @@ pub struct App {
 
 impl App {
     pub fn from_matches(matches: ArgMatches) -> Result<Self, Error> {
-        match matches.subcommand() {
-            ("from-config", Some(matches)) => Self::from_config_matches(matches),
-            ("from-args", Some(matches)) => Self::from_args_matches(matches),
-            _ => unreachable!(),
-        }
-    }
-
-    fn from_config_matches(matches: &ArgMatches) -> Result<Self, Error> {
-        let config = Config::from_config_matches(matches)?;
+        let config = Config::from_matches(&matches)?;
 
         let mut all_entries = Vec::new();
         for (name, kernel) in &config.kernels {
@@ -67,13 +59,6 @@ impl App {
 
             to_build
         };
-
-        Ok(Self { config, to_build })
-    }
-
-    fn from_args_matches(matches: &ArgMatches) -> Result<Self, Error> {
-        let config = Config::from_args_matches(matches)?;
-        let to_build = vec![("unknown".into(), "unknown".into())];
 
         Ok(Self { config, to_build })
     }
