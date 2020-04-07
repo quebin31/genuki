@@ -1,13 +1,21 @@
 # Top level keys are considered kernels
 linux:
-  # Kernels can have global options for each of their flavours
-  # These params will be overriden with their flavor counterpart
-  # Useful to avoid repetitions, if not specified here their flavor
-  # counterparts should specify them (unless they are optional)
-  cmdline: /path/to/cmdline # in kernel: optional, in flavor: optional
-  linux: /boot/vmlinuz-linux # in kernel: optional, in flavor: required?
-  splash-image: /path/to/splash # in kernel: optional, in flavor: optional
-  efistub: /path/to/efistub # in kernel: optional, in flavor: required?
+  # Kernels have global options for each of their flavours, these params will be
+  # overriden with their flavor counterpart (if provided)
+
+  # in kernel: optional, in flavor: optional
+  cmdline: /path/to/cmdline
+
+  # in kernel: optiona, in flavor: optional
+  # fallbacks to /vmlinuz-{kernel}
+  linux: /boot/vmlinuz-linux
+
+  # in kernel: optional, in flavor: optional
+  splash-image: /path/to/splash
+
+  # in kernel: optional, in flavor: optional
+  # fallbacks to /usr/lib/systemd/boot/efi/linuxx64.efi.stub
+  efistub: /path/to/efistub
 
   # Flavors may have different options, different from global kernel options
   # Each kernel-flavor pair is referred as "kernel.flavor"
@@ -27,19 +35,41 @@ linux:
     # Each key is a custom flavor
 
     default: # Referred as linux.default
-      os-release: /etc/os-release # optional, fallback to '/etc/os-release'
-      cmdline: /path/to/cmdline # optional, can be empty
-      initrd: # required, can be a list or a single value
+      # Optional
+      # Fallbacks to /etc/os-release, if not found
+      # Fallbacks to /usr/lib/os-release
+      os-release: /etc/os-release
+
+      # Optional
+      cmdline: /path/to/cmdline
+
+      # Optional
+      # If not provided will search for microcode and preprend it to
+      # main initramfs based on kernel (and flavor if it's 'fallback')
+      # Otherwise it'll combine in order the provided images.
+      initrd:
         - /boot/intel-ucode.img
         - /boot/initramfs-linux.img
-      output: /boot/EFI/Arch/archlinux.efi # required
+
+      # Required
+      output: /boot/EFI/Arch/archlinux.efi
 
     fallback: # Referred as linux.fallback
-      os-release: # optional, example of inline contents
-        inline: |
-          PRETTY_NAME="Arch Linux (fallback)"
-      cmdline: # optional, example of inline contents
-        inline: |
+      # Optional
+      # Creates a temp file based on the provided file by 'os-release' with
+      # PRETTY_NAME replaced, if 'os-release' is not provided it fallbacks
+      # to /etc/os-release as shown above, otherwise uses provided file as base.
+      title: "Arch Linux (fallback)"
+
+      # Optional
+      # It's also possible to provide the inline contents for cmdline, like this
+      cmdline:
+        inline: | # multi line string in yaml
           some kernel params here
-      initrd: /boot/initramfs-linux-fallback.img # required, example of single value
+
+      # Optional
+      # Example of single value for initrd
+      initrd: /boot/initramfs-linux-fallback.img
+
+      # Required
       output: /boot/EFI/Arch/archlinux-fallback.efi # required
