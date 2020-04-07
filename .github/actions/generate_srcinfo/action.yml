@@ -1,0 +1,11 @@
+name: Generate .SRCINFO for package
+description: Verify PKGBUILD and generate .SRCINFO
+inputs:
+  target:
+    description: The target directory
+    required: true
+runs:
+  using: docker
+  image: Dockerfile
+  args:
+    - ${{ inputs.target }}
