@@ -53,7 +53,7 @@ jobs:
         run: |
           version=$(echo $GITHUB_REF | cut -d '/' -f3)
           echo "::set-env name=VERSION::$version"
-      - name: Update PKBUILD
+      - name: Update PKGBUILD
         run: |
           sha256sum=$(sha256sum release.tar.gz | cut -d ' ' -f1)
           cd pkgbuild
