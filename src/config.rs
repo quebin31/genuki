@@ -17,7 +17,7 @@
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{ErrorKind, Read, Write};
+use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::Error;
@@ -44,7 +44,8 @@ pub enum OneOrMany<T> {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Flavor {
     #[serde(rename = "os-release")]
-    os_release: Option<InlineOrPath>,
+    os_release: Option<PathBuf>,
+    title: Option<String>,
     cmdline: Option<InlineOrPath>,
     #[serde(rename = "splash-image")]
     splash_image: Option<PathBuf>,
@@ -76,6 +77,8 @@ pub struct Config {
     pub kernels: HashMap<String, Kernel>,
 }
 
+// Naive canonicalize a file with respect to another path
+// TODO: Probably resolve symlinks?
 fn canonicalize(relative_to: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
     if path.as_ref().is_absolute() {
         path.as_ref().into()
@@ -93,6 +96,7 @@ fn canonicalize(relative_to: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBu
     }
 }
 
+// Check if 'path' exists, relative to some other path (used to canonicalize)
 fn check_file(relative_to: impl AsRef<Path>, path: impl AsRef<Path>) -> Result<PathBuf, AppError> {
     let path = canonicalize(relative_to, path);
     if !path.exists() {
@@ -110,6 +114,7 @@ fn check_file(relative_to: impl AsRef<Path>, path: impl AsRef<Path>) -> Result<P
     }
 }
 
+// Check if the provided splash image is a BMP file
 fn check_splash(
     relative_to: impl AsRef<Path>,
     path: impl AsRef<Path>,
@@ -175,22 +180,54 @@ impl Config {
         let os_release = self.kernels[kernel].flavors[flavor]
             .os_release
             .clone()
-            .unwrap_or_else(|| InlineOrPath::Path("/etc/os-release".into()));
+            .unwrap_or_else(|| "/etc/os-release".into());
 
-        match os_release {
-            InlineOrPath::Path(path) => check_file(&self.location, path),
-            InlineOrPath::Inline { inline: contents } => {
-                let (path, mut temp) =
-                    temp::temp_file(&format!("{}-{}-os_release", kernel, flavor))?;
+        // Fallback to '/usr/lib/os-release' if the other two doesn't exist
+        let os_release = check_file(&self.location, os_release)
+            .or_else(|_| check_file(&self.location, "/usr/lib/os-release"))?;
 
-                write!(temp, "{}", contents).map_err(|e| AppError::IoError {
-                    path: path.clone(),
+        if let Some(title) = &self.kernels[kernel].flavors[flavor].title {
+            let base_os_release = File::open(&os_release).expect("Wtf? How this failed?");
+            let base_os_release = BufReader::new(base_os_release);
+            let (path, mut temp) = temp::temp_file(&format!("{}-{}-os-release", kernel, flavor))?;
+
+            for line in base_os_release.lines() {
+                let line = line.map_err(|e| AppError::IoError {
+                    path: os_release.clone(),
                     source: e,
                 })?;
 
-                Ok(path)
+                let splitted: Vec<_> = line.split('=').map(str::trim).collect();
+                match (splitted[0], splitted[1]) {
+                    (key @ "PRETTY_NAME", _) => {
+                        writeln!(temp, "{}=\"{}\"", key, title).map_err(|e| AppError::IoError {
+                            path: path.clone(),
+                            source: e,
+                        })?;
+                    }
+
+                    (key @ "ID", value) => {
+                        let mut value = value.to_owned();
+                        value.push_str(&format!("-{}", flavor));
+                        writeln!(temp, "{}={}", key, value).map_err(|e| AppError::IoError {
+                            path: path.clone(),
+                            source: e,
+                        })?;
+                    }
+
+                    (key, value) => {
+                        writeln!(temp, "{}={}", key, value).map_err(|e| AppError::IoError {
+                            path: path.clone(),
+                            source: e,
+                        })?;
+                    }
+                }
             }
+
+            return Ok(path);
         }
+
+        Ok(os_release)
     }
 
     pub fn cmdline_path(&self, kernel: &str, flavor: &str) -> Result<Option<PathBuf>, AppError> {
