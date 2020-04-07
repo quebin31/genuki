@@ -1,0 +1,97 @@
+name: Release new version
+
+on:
+  push:
+    tags:
+      - "*"
+
+env:
+  GIT_SSH_COMMAND: ssh -i $HOME/.ssh/aur -o UserKnownHostsFile=$HOME/.ssh/known_hosts
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache cargo files
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Test
+        run: cargo test --release
+      - name: Test with standalone feature
+        run: cargo test --features standalone --release
+
+  publish:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:latest
+
+    needs: test
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache cargo files
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Init SSH key and hosts
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_AUR_KEY }}
+          name: aur
+          known_hosts: ${{ secrets.KNOWN_HOSTS_AUR }}
+      - name: Checkout pkgbuild submodule
+        run: git submodule update --init --force --depth=1
+      - name: Build binary
+        run: cargo build --release
+      - name: Generate tarball
+        run: tar czf release.tar.gz share target/release/genuki
+      - name: Set VERSION env variable
+        run: |
+          version=$(echo $GITHUB_REF | cut -d '/' -f3)
+          echo "::set-env name=VERSION::$version"
+      - name: Update PKBUILD
+        run: |
+          sha256sum=$(sha256sum release.tar.gz | cut -d ' ' -f1)
+          cd pkgbuild
+
+          sed -i -E "s/(pkgver=).*/\1$VERSION/" PKGBUILD
+          sed -i -E "s/(pkgrel=).*/\11/" PKGBUILD
+          sed -i -E "s/(sha256sums=).*/\1('$sha256sum')/" PKGBUILD
+        env:
+          VERSION: ${{ env.VERSION }}
+      - name: Generate .SRCINFO
+        uses: ./.github/actions/generate_srcinfo
+        with:
+          target: pkgbuild
+      - name: Publish to AUR
+        run: |
+          cd pkgbuild
+
+          git config --local user.email "quebin31@gmail.com"
+          git config --local user.name "Kevin (CI/CD)"
+          git commit -m "updver: $VERSION" -a 
+          git push origin HEAD:refs/heads/master
+        env:
+          VERSION: ${{ env.VERSION }}
+      - name: Publish to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release.tar.gz
+          body_path: changelogs/${{ env.VERSION }}.md
+      - name: Commit pkgbuild submodule
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Bumped to version $VERSION"
+        env:
+          VERSION: ${{ env.VERSION }}
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
