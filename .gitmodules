@@ -1,0 +1,3 @@
+[submodule "pkgbuild"]
+	path = pkgbuild
+	url = ssh://aur@aur.archlinux.org/genuki.git
