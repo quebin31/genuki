@@ -82,6 +82,8 @@ jobs:
         with:
           files: release.tar.gz
           body_path: changelogs/${{ env.VERSION }}.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Commit pkgbuild submodule
         run: |
           git config --local user.email "action@github.com"
