@@ -23,8 +23,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Test
         run: cargo test --release
-      - name: Test with standalone feature
-        run: cargo test --features standalone --release
 
   publish:
     runs-on: ubuntu-latest

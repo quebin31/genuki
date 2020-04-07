@@ -37,8 +37,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build
         run: cargo build
-      - name: Build with standalone feature
-        run: cargo build --features standalone
 
   test:
     runs-on: ubuntu-latest
@@ -54,5 +52,3 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Test
         run: cargo test
-      - name: Test with standalone feature
-        run: cargo test --features standalone
