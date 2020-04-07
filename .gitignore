@@ -2,3 +2,4 @@
 share/test.yaml
 share/cmdline
 share/nvidia
+*.tar.gz

@@ -88,7 +88,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "Bumped to version $VERSION"
+          git commit -m "Bumped to version $VERSION" -a
         env:
           VERSION: ${{ env.VERSION }}
       - name: Push changes
