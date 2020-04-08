@@ -82,6 +82,7 @@ jobs:
         with:
           files: release.tar.gz
           body_path: changelogs/${{ env.VERSION }}.md
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Commit pkgbuild submodule
@@ -94,4 +95,5 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
+          tags: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
