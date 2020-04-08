@@ -43,6 +43,7 @@ pub enum OneOrMany<T> {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Flavor {
+    enabled: Option<bool>,
     #[serde(rename = "os-release")]
     os_release: Option<PathBuf>,
     title: Option<String>,
@@ -174,6 +175,13 @@ impl Config {
             .canonicalize()?;
 
         Ok(config)
+    }
+
+    pub fn is_enabled(&self, kernel: &str, flavor: &str) -> bool {
+        self.kernels[kernel].flavors[flavor]
+            .enabled
+            .clone()
+            .unwrap_or(true)
     }
 
     pub fn os_release_path(&self, kernel: &str, flavor: &str) -> Result<PathBuf, AppError> {

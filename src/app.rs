@@ -65,6 +65,10 @@ impl App {
 
     pub fn run(&self) -> Result<(), Error> {
         for (kernel, flavor) in &self.to_build {
+            if !self.config.is_enabled(kernel, flavor) {
+                continue;
+            }
+
             self.generate_for(&kernel, &flavor)?;
         }
 
