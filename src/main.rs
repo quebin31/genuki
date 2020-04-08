@@ -38,7 +38,7 @@ fn run(app: ClapApp) -> Result<(), Error> {
 
     init_logger(verbose).unwrap();
 
-    log::debug!("Parsing arguments (and maybe config)");
+    log::debug!("Reading config");
     let app = App::from_matches(matches)?;
     log::debug!("Parsed app: {:#?}", &app);
     app.run()
