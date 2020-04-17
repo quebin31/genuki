@@ -48,6 +48,10 @@ impl App {
             let to_build: Vec<_> = all_entries
                 .iter()
                 .filter_map(|(kernel, flavor)| {
+                    if !config.is_enabled(kernel, flavor) {
+                        return None;
+                    }
+
                     let human_name = format!("{}.{}", kernel, flavor);
                     if regexes.is_match(&human_name) {
                         Some((kernel.to_string(), flavor.to_string()))
@@ -65,10 +69,6 @@ impl App {
 
     pub fn run(&self) -> Result<(), Error> {
         for (kernel, flavor) in &self.to_build {
-            if !self.config.is_enabled(kernel, flavor) {
-                continue;
-            }
-
             self.generate_for(&kernel, &flavor)?;
         }
 
