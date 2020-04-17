@@ -18,6 +18,7 @@
 mod app;
 mod config;
 mod error;
+mod format;
 mod logger;
 mod temp;
 
