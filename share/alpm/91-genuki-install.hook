@@ -1,0 +1,11 @@
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = usr/lib/modules/*/pkgbase
+
+[Action]
+Description = Updating UKIs...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/genuki-install
+NeedsTargets

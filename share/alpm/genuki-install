@@ -1,0 +1,13 @@
+#!/bin/bash
+
+kernels=()
+
+while read -r line; do
+    read -r pkgbase < "/${line}"
+    kernels+=("${pkgbase}")
+done
+
+for kernel in "${kernels[@]}"; do
+    echo ":: Running genuki for $kernel"
+    genuki -v "^$kernel\."
+done
