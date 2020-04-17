@@ -25,12 +25,13 @@ use clap::ArgMatches;
 use serde::Deserialize;
 
 use crate::error::AppError;
+use crate::format::FormatPath;
 use crate::temp;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum InlineOrPath {
-    Path(PathBuf),
+    Path(FormatPath),
     Inline { inline: String },
 }
 
@@ -49,11 +50,11 @@ pub struct Flavor {
     title: Option<String>,
     cmdline: Option<InlineOrPath>,
     #[serde(rename = "splash-image")]
-    splash_image: Option<PathBuf>,
-    linux: Option<PathBuf>,
-    initrd: Option<OneOrMany<PathBuf>>,
+    splash_image: Option<FormatPath>,
+    linux: Option<FormatPath>,
+    initrd: Option<OneOrMany<FormatPath>>,
     efistub: Option<PathBuf>,
-    output: PathBuf,
+    output: FormatPath,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -61,9 +62,9 @@ pub struct Kernel {
     /// The following params are global optionals, that
     /// can be overriden with specific flavor params.
     cmdline: Option<InlineOrPath>,
-    linux: Option<PathBuf>,
+    linux: Option<FormatPath>,
     #[serde(rename = "splash-image")]
-    splash_image: Option<PathBuf>,
+    splash_image: Option<FormatPath>,
     efistub: Option<PathBuf>,
 
     /// Map of flavors
@@ -137,15 +138,15 @@ fn check_splash(
     }
 }
 
-fn populate_initramfs(kernel: &str, flavor: &str) -> Result<OneOrMany<PathBuf>, AppError> {
+fn populate_initrd(kernel: &str, flavor: &str) -> Result<OneOrMany<FormatPath>, AppError> {
     let amd_ucode = Path::new("/boot/amd-ucode.img");
     let intel_ucode = Path::new("/boot/intel-ucode.img");
 
     let mut initrd = Vec::new();
     match (amd_ucode.exists(), intel_ucode.exists()) {
         (true, true) => return Err(AppError::MultipleMicrocode),
-        (true, false) => initrd.push(amd_ucode.to_path_buf()),
-        (false, true) => initrd.push(intel_ucode.to_path_buf()),
+        (true, false) => initrd.push(amd_ucode.into()),
+        (false, true) => initrd.push(intel_ucode.into()),
         _ => {}
     }
 
@@ -165,6 +166,27 @@ fn populate_initramfs(kernel: &str, flavor: &str) -> Result<OneOrMany<PathBuf>, 
 }
 
 impl Config {
+    fn maybe_copy_flavors(mut self) -> Result<Self, Error> {
+        if !self.kernels.contains_key("any") {
+            return Ok(self);
+        }
+
+        let any = self.kernels["any"].clone();
+
+        for kernel in glob::glob("/boot/vmlinuz-*")? {
+            let kernel = kernel?;
+            let kernel = &kernel.to_string_lossy()[14..];
+
+            self.kernels
+                .entry(kernel.to_owned())
+                .or_insert_with(|| any.clone());
+        }
+
+        self.kernels.remove("any");
+
+        Ok(self)
+    }
+
     pub fn from_matches(matches: &ArgMatches) -> Result<Self, Error> {
         let config_path = matches.value_of("config").unwrap();
         let contents = std::fs::read_to_string(config_path)?;
@@ -174,7 +196,7 @@ impl Config {
             .unwrap_or(&std::env::current_dir()?)
             .canonicalize()?;
 
-        Ok(config)
+        config.maybe_copy_flavors()
     }
 
     pub fn is_enabled(&self, kernel: &str, flavor: &str) -> bool {
@@ -246,7 +268,11 @@ impl Config {
             .or_else(|| kernel_entry.cmdline.clone());
 
         match cmdline {
-            Some(InlineOrPath::Path(path)) => Ok(Some(check_file(&self.location, path)?)),
+            Some(InlineOrPath::Path(path)) => {
+                let path = path.replace(kernel, flavor);
+                Ok(Some(check_file(&self.location, path)?))
+            }
+
             Some(InlineOrPath::Inline { inline: contents }) => {
                 let (path, mut temp) = temp::temp_file(&format!("{}-{}-cmdline", kernel, flavor))?;
 
@@ -274,7 +300,10 @@ impl Config {
             .or_else(|| kernel_entry.splash_image.clone());
 
         match splash_image {
-            Some(path) => Ok(Some(check_splash(&self.location, path)?)),
+            Some(path) => {
+                let path = path.replace(kernel, flavor);
+                Ok(Some(check_splash(&self.location, path)?))
+            }
             None => Ok(None),
         }
     }
@@ -287,7 +316,10 @@ impl Config {
             .or_else(|| kernel_entry.linux.clone());
 
         match linux {
-            Some(path) => check_file(&self.location, path),
+            Some(path) => {
+                let path = path.replace(kernel, flavor);
+                check_file(&self.location, path)
+            }
             None => check_file(&self.location, format!("/boot/vmlinuz-{}", kernel)),
         }
     }
@@ -296,16 +328,20 @@ impl Config {
         let initrd = self.kernels[kernel].flavors[flavor]
             .initrd
             .clone()
-            .unwrap_or(populate_initramfs(kernel, flavor)?);
+            .unwrap_or(populate_initrd(kernel, flavor)?);
 
         match initrd {
-            OneOrMany::One(path) => check_file(&self.location, path),
+            OneOrMany::One(path) => {
+                let path = path.replace(kernel, flavor);
+                check_file(&self.location, path)
+            }
             OneOrMany::Many(paths) => {
                 let (path, mut temp) =
                     temp::temp_file(&format!("{}-{}-initrd.img", kernel, flavor))?;
 
                 for initrd in &paths {
-                    let contents = std::fs::read(initrd).map_err(|e| AppError::IoError {
+                    let initrd = initrd.replace(kernel, flavor);
+                    let contents = std::fs::read(&initrd).map_err(|e| AppError::IoError {
                         path: initrd.clone(),
                         source: e,
                     })?;
@@ -338,6 +374,9 @@ impl Config {
     }
 
     pub fn output_path(&self, kernel: &str, flavor: &str) -> Result<PathBuf, AppError> {
-        Ok(self.kernels[kernel].flavors[flavor].output.clone())
+        Ok(self.kernels[kernel].flavors[flavor]
+            .output
+            .clone()
+            .replace(kernel, flavor))
     }
 }
