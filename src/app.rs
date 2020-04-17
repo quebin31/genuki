@@ -25,6 +25,7 @@ use crate::config::Config;
 #[derive(Debug, Clone)]
 pub struct App {
     config: Config,
+    remove: bool,
     to_build: Vec<(String, String)>,
 }
 
@@ -64,18 +65,41 @@ impl App {
             to_build
         };
 
-        Ok(Self { config, to_build })
+        let remove = matches.is_present("remove");
+
+        Ok(Self {
+            config,
+            remove,
+            to_build,
+        })
     }
 
     pub fn run(&self) -> Result<(), Error> {
+        let action = if self.remove {
+            Self::remove_uki
+        } else {
+            Self::generate_uki
+        };
+
         for (kernel, flavor) in &self.to_build {
-            self.generate_for(&kernel, &flavor)?;
+            action(&self, kernel, flavor)?;
         }
 
         Ok(())
     }
 
-    fn generate_for(&self, kernel: &str, flavor: &str) -> Result<(), Error> {
+    fn remove_uki(&self, kernel: &str, flavor: &str) -> Result<(), Error> {
+        let uki_path = self.config.output_path(kernel, flavor)?;
+
+        if uki_path.is_file() {
+            log::info!("Removing uki for {}.{}", kernel, flavor);
+            std::fs::remove_file(uki_path)?;
+        }
+
+        Ok(())
+    }
+
+    fn generate_uki(&self, kernel: &str, flavor: &str) -> Result<(), Error> {
         let objcopy_path = which::which_in("objcopy", Some("/usr/bin/"), std::env::current_dir()?)?;
 
         let mut cmd_args = vec![

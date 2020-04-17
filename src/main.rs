@@ -66,6 +66,12 @@ fn main() {
                 .help("Set custom config file"),
         )
         .arg(
+            Arg::with_name("remove")
+                .short("r")
+                .long("remove")
+                .help("Remove images instead of generating them"),
+        )
+        .arg(
             Arg::with_name("all")
                 .short("a")
                 .long("all")
