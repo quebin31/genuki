@@ -2,6 +2,6 @@
 
 while read -r line; do
     read -r pkgbase < "/${line}"
-    echo ":: Running genuki for entries of $kernel"
-    genuki -v "^${kernel}\."
+    echo ":: Generating UKIs for entries of $pkgbase"
+    genuki -v "^${pkgbase}\."
 done

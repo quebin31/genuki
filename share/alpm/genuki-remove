@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/bin/bash -e 
 
 while read -r line; do 
     read -r pkgbase < "/${line}"
-    genuki -vr "^${kernel}\."
+    echo ":: Removing UKIs for entries of $pkgbase"
+    genuki -v -r "^${pkgbase}\."
 done
