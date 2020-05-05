@@ -27,3 +27,7 @@
 </p>
 
 # About
+
+
+# Todo
+- [] Generate signed images for secure boot
