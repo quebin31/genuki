@@ -30,4 +30,4 @@
 
 
 # Todo
-- [] Generate signed images for secure boot
+- [ ] Generate signed images for secure boot
