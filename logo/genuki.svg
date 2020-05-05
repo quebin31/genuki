@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:export-ydpi="96.202263"
+   inkscape:export-xdpi="96.202263"
+   inkscape:export-filename="/home/kevin/Projects/By-Lang/Rust/genuki/logo/genuki.png"
+   sodipodi:docname="genuki.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 159.97472 56.891627"
+   height="215.02347"
+   width="604.62891">
+  <defs
+     id="defs2">
+    <filter
+       id="filter226"
+       inkscape:label="Drop Shadow"
+       style="color-interpolation-filters:sRGB;">
+      <feFlood
+         id="feFlood216"
+         result="flood"
+         flood-color="rgb(0,0,0)"
+         flood-opacity="0.498039" />
+      <feComposite
+         id="feComposite218"
+         result="composite1"
+         operator="in"
+         in2="SourceGraphic"
+         in="flood" />
+      <feGaussianBlur
+         id="feGaussianBlur220"
+         result="blur"
+         stdDeviation="0.1"
+         in="composite1" />
+      <feOffset
+         id="feOffset222"
+         result="offset"
+         dy="0.1"
+         dx="0.1" />
+      <feComposite
+         id="feComposite224"
+         result="composite2"
+         operator="over"
+         in2="offset"
+         in="SourceGraphic" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     inkscape:window-maximized="1"
+     inkscape:window-y="32"
+     inkscape:window-x="0"
+     inkscape:window-height="704"
+     inkscape:window-width="1366"
+     fit-margin-bottom="16"
+     fit-margin-right="16"
+     fit-margin-left="16"
+     fit-margin-top="16"
+     units="px"
+     lock-margins="true"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="px"
+     inkscape:cy="155.97002"
+     inkscape:cx="132.42384"
+     inkscape:zoom="0.7"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-4.9502843,-35.593332)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <flowRoot
+       transform="matrix(4.8676607,0,0,4.8676607,-116.34726,-329.44482)"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter226)"
+       id="flowRoot10"
+       xml:space="preserve"><flowRegion
+         id="flowRegion12"><rect
+           style="stroke-width:0.264583;"
+           y="73.903732"
+           x="25.311855"
+           height="87.873833"
+           width="196.63672"
+           id="rect14" /></flowRegion><flowPara
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Quicksand;-inkscape-font-specification:Quicksand;fill:#aaffcc;"
+         id="flowPara16"><flowSpan
+   id="flowSpan22"
+   style="fill:#c6e9af;">ge<flowSpan
+   id="flowSpan240"
+   style="letter-spacing:-0.28482195px">n</flowSpan></flowSpan><flowSpan
+   id="flowSpan242"
+   style="letter-spacing:-0.28482195px">u</flowSpan>ki</flowPara></flowRoot>
+  </g>
+</svg>
