@@ -75,6 +75,7 @@ fn main() {
             Arg::with_name("all")
                 .short("a")
                 .long("all")
+                .multiple(true)
                 .help("Generate UKIs for all the entries"),
         )
         .arg(

@@ -40,29 +40,28 @@ impl App {
             }
         }
 
-        let to_build = if matches.is_present("all") {
-            all_entries
-        } else {
-            let regexes: Vec<_> = matches.values_of("entries").unwrap().collect();
-            let regexes = regex::RegexSet::new(&regexes)?;
+        let to_build: Vec<_> = match matches.occurrences_of("all") {
+            0 => {
+                let regexes: Vec<_> = matches.values_of("entries").unwrap().collect();
+                let regexes = regex::RegexSet::new(&regexes)?;
 
-            let to_build: Vec<_> = all_entries
+                all_entries
+                    .iter()
+                    .filter(|(kernel, flavor)| {
+                        let human_name = format!("{}.{}", kernel, flavor);
+                        config.is_enabled(kernel, flavor) && regexes.is_match(&human_name)
+                    })
+                    .cloned()
+                    .collect()
+            }
+
+            1 => all_entries
                 .iter()
-                .filter_map(|(kernel, flavor)| {
-                    if !config.is_enabled(kernel, flavor) {
-                        return None;
-                    }
+                .filter(|(kernel, flavor)| config.is_enabled(kernel, flavor))
+                .cloned()
+                .collect(),
 
-                    let human_name = format!("{}.{}", kernel, flavor);
-                    if regexes.is_match(&human_name) {
-                        Some((kernel.to_string(), flavor.to_string()))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            to_build
+            _ => all_entries,
         };
 
         let remove = matches.is_present("remove");
